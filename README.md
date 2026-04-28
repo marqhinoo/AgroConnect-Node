@@ -1,45 +1,42 @@
-# AgroConnect 2.4G - Nodo de Monitoreo Agrícola
+# AgroConnect - Nodo de Monitoreo Agrícola Profesional
 
-AgroConnect es un nodo de monitoreo de precisión diseñado para el agro, basado en el ecosistema ESP32. El sistema permite medir variables críticas como la humedad del suelo a diferentes profundidades y el estrés ambiental mediante el cálculo del **Déficit de Presión de Vapor (VPD)**.
-
-Este proyecto destaca por su **ultra bajo consumo energético** (aprox. 24.5 mAh/día), permitiendo una autonomía total mediante un panel solar de 3W y una batería 18650.
+AgroConnect es un sistema de monitoreo de precisión diseñado para el agro, basado en el microcontrolador **ESP32-WROOM-32U**. Este nodo está optimizado para recolectar datos críticos del suelo y del ambiente, procesarlos bajo una estrategia de **ultra bajo consumo** (24.5 mAh/día) y transmitirlos mediante **Wi-Fi de alta ganancia o LoRa**.
 
 ## 🚀 Características Principales
-- **Conectividad Dual:** Preparado para trabajar con Wi-Fi (usando antena de alta ganancia de 8dBi) y expansión para LoRa.
-- **Eficiencia Energética:** Implementación de modo *Deep Sleep* y regulador LDO HT7333-A para maximizar la vida de la batería.
-- **Cálculo de VPD:** Monitoreo de presión atmosférica, temperatura y humedad para detectar estrés transpirativo en tiempo real.
-- **Sensores de Suelo:** Monitoreo capacitivo a dos profundidades (15cm y 40cm) para gestión de riego.
+- **Conectividad Híbrida:** Wi-Fi mediante antena externa de 8dBi y soporte para LoRa (Sx1278).
+- **Eficiencia Energética:** Gestión mediante panel solar de 3W, batería 18650 y regulador LDO de baja caída.
+- **Monitoreo Ambiental Completo:** Cálculo de VPD utilizando presión atmosférica (BMP280) y sensor de alta precisión SHT30.
+- **Análisis de Suelo:** Humedad a dos profundidades (Capacitivos v1.2) y temperatura de raíz (DS18B20).
 
-## 🛠️ Hardware Utilizado
+## 🛠️ Lista de Componentes (Hardware)
 | Componente | Función |
 | :--- | :--- |
-| **ESP32-WROOM-32U** | Microcontrolador con conector U.FL para antena externa. |
-| **Antena TP-Link 8dBi** | Ganancia de señal Wi-Fi de 2.4GHz para cobertura en lote. |
-| **BMP280** | Sensor de Presión Atmosférica y Temperatura. |
-| **DHT22** | Sensor de Humedad y Temperatura ambiente. |
-| **Capacitivos v1.2** | Sensores de humedad de suelo (resistentes a la corrosión). |
-| **TP4056 + BMS** | Cargador de batería de litio con protección. |
-| **Panel Solar 6V/3W** | Fuente de energía renovable. |
+| **ESP32-WROOM-32U** | Microcontrolador central con conector U.FL. |
+| **LoRa Sx1278** | Módulo de comunicación de largo alcance (433MHz). |
+| **Sensor SHT30** | Humedad y temperatura ambiente (Alta precisión). |
+| **Sensor BMP280** | Presión atmosférica y temperatura. |
+| **2 x Humedad Suelo v1.2** | Medición capacitiva (anti-corrosión) a 15cm y 40cm. |
+| **Sensor DS18B20** | Temperatura de raíz (sumergible). |
+| **Panel Solar (6V/3W)** | Generación de energía. |
+| **Módulo TP4056 + BMS** | Cargador de batería con protección integrada. |
+| **Batería 18650** | Almacenamiento de energía (Litio). |
+| **LDO HT7333-A** | Regulador a 3.3V de ultra bajo consumo. |
+| **Diodo 1N5817** | Protección anti-retorno para el panel solar. |
+| **Capacitor 10µF** | Estabilización de voltaje para picos de transmisión. |
 
-## 📐 Diagrama de Conexión (Resumen)
-- **I2C (BMP280):** SDA -> GPIO 21 | SCL -> GPIO 22.
-- **Sensores Humedad:** Entrada Analógica GPIO 32 y 34.
-- **Alimentación:** Regulada a 3.3V mediante HT7333-A.
-- **Antena:** Conectada vía Pigtail U.FL a RP-SMA.
+## 📐 Diagrama de Conexión (I2C & SPI)
+- **Protocolo I2C (Compartido):** SHT30 y BMP280 conectados a los pines GPIO 21 (SDA) y GPIO 22 (SCL).
+- **Protocolo SPI (LoRa):** Conexión del módulo Sx1278 para transmisiones de larga distancia.
+- **Entradas Analógicas:** Sensores capacitivos a GPIO 32 y 34.
+- **One-Wire:** DS18B20 a GPIO 4 (con resistencia pull-up).
 
 ## 📁 Estructura del Repositorio
-- `/Firmware`: Código fuente para Arduino IDE / PlatformIO.
-- `/Hardware`: Esquemas de conexión y diseño de PCB (Fritzing/EasyEDA).
-- `/Docs`: Guías de calibración de sensores y protección contra lluvia (Radomos DIY).
+- `/Firmware`: Código fuente optimizado para Deep Sleep.
+- `/Hardware`: Esquemas de conexión y lista de materiales (BOM).
+- `/Docs`: Guías de protección (Radomos de PVC) y calibración.
 
-## 🛡️ Protección Ambiental
-Para garantizar la durabilidad en el campo:
-1. **Electrónica:** Alojada en gabinete estanco con grado de protección IP65/66.
-2. **Antena:** Protegida mediante radomo de PVC transparente a ondas de 2.4GHz.
-3. **Sensores:** Instalación con protector de radiación solar y "bucle de goteo" para cables.
-
-## 📄 Licencia
-Este proyecto está bajo la Licencia MIT - mira el archivo [LICENSE](LICENSE) para detalles.
+## 📄 Notas de Implementación
+Para garantizar que el sensor **SHT30** y el **BMP280** no se mojen, se deben instalar en un protector de radiación solar (Stevenson screen) en la parte exterior del gabinete IP65, asegurando que el cable de la antena de 8dBi esté correctamente sellado con cinta vulcanizada.
 
 ---
-Desarrollado para la optimización hídrica y tecnológica del sector agropecuario.
+**AgroConnect** - Optimizando cada gota de agua mediante datos.
