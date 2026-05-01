@@ -1,0 +1,21 @@
+{
+  "short_name": "AgroConnect",
+  "name": "AgroConnect",
+  "icons": [
+    {
+      "src": "logo.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "logo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#05070a",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#22c55e"
+}
