@@ -1,228 +1,258 @@
-#include <WiFi.h>
-#include <HTTPClient.h>
-#include <LoRa.h>
-#include <ArduinoJson.h>
+#include <Arduino.h>
 #include <Wire.h>
-#include <Adafruit_BMP280.h>
-#include <Adafruit_SHT31.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <Adafruit_SHT31.h>
+#include <Adafruit_BMP280.h>
+#include <SPI.h>
+#include <LoRa.h>
+#include <WiFi.h>
+#include <FirebaseESP32.h>
 
-// ==========================================
-// CONFIGURACIÓN DE ROL E IDENTIFICACIÓN
-// ==========================================
-const bool ES_MAESTRO_GATEWAY = false;       // Cambiar a TRUE para el de la casa/base, FALSE para el de campo
-const char* idNodo = "nodo_campo_01";        // Si es Maestro, el código automáticamente usará "nodo_maestro_base"
+// Credenciales y Firebase
+#define WIFI_SSID "Informatica2043"
+#define WIFI_PASSWORD "Info20432025+"
+#define FIREBASE_HOST "agroconnect-9b8cd-default-rtdb.firebaseio.com"
+#define FIREBASE_AUTH "SiS2adHOeXE8LDWgVjZnP1pA67nQPVxyudmMoPJA"
+#define USER_UID "DdaAJqXxIcadkzamNl16yWyy8k13"
+#define NODO_CENTRAL_ID "Marco"
 
-// --- Configuración WiFi e IP Estática ---
-IPAddress local_IP(192, 168, 1, 150); 
-IPAddress gateway(192, 168, 1, 1);
-IPAddress subnet(255, 255, 255, 0);
+// Pines I2C y OneWire
+#define SDA_PIN 21
+#define SCL_PIN 22
+#define ONE_WIRE_BUS 4
 
-const char* ssid = "TU_WIFI_RURAL";
-const char* password = "TU_PASSWORD";
-const char* serverName = "https://daily-pusher-sapling.ngrok-free.app/update";
+// Sensores de humedad de suelo
+#define SOIL_15CM_PIN 34
+#define SOIL_40CM_PIN 35
+#define AIR_VAL_15CM 3200
+#define WATER_VAL_15CM 1300
+#define AIR_VAL_40CM 3200
+#define WATER_VAL_40CM 1300
 
-// --- Pines Módulo LoRa ---
-#define NSS 10
-#define RST 9
-#define DIO0 6
+// Pines LoRa Ra-01 (SPI)
+#define LORA_SCK 18
+#define LORA_MISO 19
+#define LORA_MOSI 23
+#define LORA_CS 5
+#define LORA_RST 14
+#define LORA_DIO0 2
+#define BAND 433E6
 
-// --- Pines Sensores ---
-#define SOIL_15CM A0       
-#define SOIL_40CM A1       
-#define DS18B20_PIN A2     
+// Estructura de telemetría
+struct LecturaNodo {
+  char nodoId[32];
+  float tempAire;
+  float humAire;
+  float tempSuelo;
+  float vpd;
+  float presion;
+  int hum15;
+  int hum40;
+  float bateria;
+};
 
-const int VALOR_SECO = 3000;   
-const int VALOR_HUMEDO = 1200; 
-
-OneWire oneWire(DS18B20_PIN);
-DallasTemperature sensors(&oneWire);
-Adafruit_BMP280 bmp;
+// Objetos de Sensores
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature ds18b20(&oneWire);
 Adafruit_SHT31 sht30 = Adafruit_SHT31();
+Adafruit_BMP280 bmp(&Wire);
 
-// Tiempos para el Maestro (en milisegundos)
-unsigned long ultimoTiempoMedicionMaestro = 0;
-const unsigned long INTERVALO_MEDICION_MAESTRO = 600000; // 10 minutos
+// Firebase y FreeRTOS
+FirebaseData firebaseData;
+FirebaseAuth auth;
+FirebaseConfig config;
+QueueHandle_t colaFirebase;
 
-// Tiempo de sueño para el Esclavo (en microsegundos)
-const uint64_t TIEMPO_DORMIR_ESCLAVO_US = 600 * 1000000ULL; 
+// Variables de Estado y Temporización
+bool sht30_conectado = false;
+bool bmp280_conectado = false;
+bool lora_conectado = false;
+unsigned long previousMillis = 0;
+const long interval = 10000; // Lectura de sensores locales cada 10s
 
-int leerHumedadEstable(int pin) {
-  long suma = 0;
-  for(int i = 0; i < 10; i++) { suma += analogRead(pin); delay(20); }
-  return (int)(suma / 10);
+// Tarea en segundo plano para Firebase
+void tareaFirebase(void *pvParameters) {
+  LecturaNodo datos;
+  for (;;) {
+    if (xQueueReceive(colaFirebase, &datos, portMAX_DELAY) == pdTRUE) {
+      if (WiFi.status() == WL_CONNECTED) {
+        // La ruta se adapta dinámicamente según la ID del nodo recibido
+        String path = "/usuarios/" + String(USER_UID) + "/lecturas/" + String(datos.nodoId);
+        
+        FirebaseJson json;
+        json.set("tempAire", datos.tempAire);
+        json.set("humAire", datos.humAire);
+        json.set("tempSuelo", datos.tempSuelo);
+        json.set("vpd", datos.vpd);
+        json.set("presion", datos.presion);
+        json.set("hum15", datos.hum15);
+        json.set("hum40", datos.hum40);
+        json.set("bateria", datos.bateria);
+        json.set("timestamp", String(millis()));
+
+        if (Firebase.pushJSON(firebaseData, path, json)) {
+          Serial.println("✅ [Firebase] Subido OK al nodo: " + String(datos.nodoId));
+        } else {
+          Serial.println("❌ [Firebase] Error: " + firebaseData.errorReason());
+        }
+      } else {
+        Serial.println("⚠️ [Firebase] Wi-Fi no disponible, reintentando...");
+        vTaskDelay(pdMS_TO_TICKS(1000));
+      }
+    }
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
 }
 
-float calcularVPD(float t, float h) {
-  if (isnan(t) || isnan(h)) return 0.0;
-  float vpsat = 0.61078 * exp((17.27 * t) / (t + 237.3));
-  return vpsat * (1.0 - (h / 100.0));
+void encolarTrama(String paquete) {
+  paquete.trim();
+  int index = 0;
+  String valores[9];
+
+  for (int i = 0; i < paquete.length(); i++) {
+    if (paquete.charAt(i) == ',') {
+      index++;
+    } else {
+      if (index < 9) valores[index] += paquete.charAt(i);
+    }
+  }
+
+  if (index < 8) {
+    Serial.println("⚠️ Trama LoRa incompleta recibida: " + paquete);
+    return;
+  }
+
+  LecturaNodo nuevaLectura;
+  // Extrae la ID enviada por el nodo emisor (ej: nodo_central_02, nodo_campo_01)
+  valores[0].toCharArray(nuevaLectura.nodoId, sizeof(nuevaLectura.nodoId));
+  nuevaLectura.tempAire = valores[1].toFloat();
+  nuevaLectura.humAire = valores[2].toFloat();
+  nuevaLectura.tempSuelo = valores[3].toFloat();
+  nuevaLectura.vpd = valores[4].toFloat();
+  nuevaLectura.presion = valores[5].toFloat();
+  nuevaLectura.hum15 = valores[6].toInt();
+  nuevaLectura.hum40 = valores[7].toInt();
+  nuevaLectura.bateria = valores[8].toFloat();
+
+  if (xQueueSend(colaFirebase, &nuevaLectura, pdMS_TO_TICKS(100)) != pdTRUE) {
+    Serial.println("⚠️ Cola Firebase llena. Paquete descartado temporalmente.");
+  }
 }
 
-// --- FUNCIÓN GENERAL DE LECTURA (La usan ambos nodos) ---
-String generarJsonMedicion(const char* idActual, int wifiCon, int loraCon) {
-  float t_aire = sht30.readTemperature();
-  float h_aire = sht30.readHumidity();
-  float pres = bmp.readPressure() / 100.0F;
-  float vpdCalculado = calcularVPD(t_aire, h_aire);
+void leerYEncolarSensoresLocales() {
+  LecturaNodo local;
+  // Fuerza siempre la ID del Nodo Central 01 para los sensores propios
+  snprintf(local.nodoId, sizeof(local.nodoId), "%s", NODO_CENTRAL_ID);
+
+  local.tempAire = sht30_conectado ? sht30.readTemperature() : 0.0;
+  local.humAire = sht30_conectado ? sht30.readHumidity() : 0.0;
   
-  sensors.requestTemperatures(); 
-  float t_suelo = sensors.getTempCByIndex(0);
-  if (t_suelo == -127.0) t_suelo = 0.0;
+  ds18b20.requestTemperatures();
+  local.tempSuelo = ds18b20.getTempCByIndex(0);
+  if (local.tempSuelo == DEVICE_DISCONNECTED_C) local.tempSuelo = 0.0;
 
-  int s1_raw = leerHumedadEstable(SOIL_15CM);
-  int s2_raw = leerHumedadEstable(SOIL_40CM);
-  
-  int hum15 = map(s1_raw, VALOR_SECO, VALOR_HUMEDO, 0, 100); 
-  int hum40 = map(s2_raw, VALOR_SECO, VALOR_HUMEDO, 0, 100);
-  hum15 = constrain(hum15, 0, 100);
-  hum40 = constrain(hum40, 0, 100);
+  local.presion = bmp280_conectado ? (bmp.readPressure() / 100.0F) : 0.0;
 
-  JsonDocument doc;
-  doc["usuario"]   = "admin@agro.com";
-  doc["idNodo"]    = idActual;
-  doc["tempAire"]  = serialized(String(t_aire, 2));
-  doc["humAire"]   = serialized(String(h_aire, 2));
-  doc["presion"]   = serialized(String(pres, 2));
-  doc["vpd"]       = serialized(String(vpdCalculado, 2));
-  doc["hum15"]     = hum15;
-  doc["hum40"]     = hum40;
-  doc["tempSuelo"] = serialized(String(t_suelo, 1));
-  doc["bateria"]   = 4.15; 
-  doc["wifiCon"]   = wifiCon;
-  doc["loraCon"]   = loraCon;
+  // Cálculo de VPD
+  if (local.tempAire > 0 && local.humAire > 0) {
+    float es = 0.61078 * exp((17.27 * local.tempAire) / (local.tempAire + 237.3));
+    float ea = es * (local.humAire / 100.0);
+    local.vpd = es - ea;
+  } else {
+    local.vpd = 0.0;
+  }
 
-  String output;
-  serializeJson(doc, output);
-  return output;
+  int raw15 = analogRead(SOIL_15CM_PIN);
+  int raw40 = analogRead(SOIL_40CM_PIN);
+  local.hum15 = map(raw15, AIR_VAL_15CM, WATER_VAL_15CM, 0, 100);
+  local.hum40 = map(raw40, AIR_VAL_40CM, WATER_VAL_40CM, 0, 100);
+  local.hum15 = constrain(local.hum15, 0, 100);
+  local.hum40 = constrain(local.hum40, 0, 100);
+
+  local.bateria = 4.2; // Alimentación fija
+
+  xQueueSend(colaFirebase, &local, pdMS_TO_TICKS(100));
 }
 
 void setup() {
-  setCpuFrequencyMhz(80); 
   Serial.begin(115200);
-  delay(500);
+  delay(1000);
+  Serial.println("\n--- INICIALIZANDO NODO CENTRAL ---");
 
-  Wire.begin(); 
-  Wire.setClock(100000); 
-  sensors.begin(); 
+  pinMode(SOIL_15CM_PIN, INPUT);
+  pinMode(SOIL_40CM_PIN, INPUT);
 
-  LoRa.setPins(NSS, RST, DIO0);
-  if (!LoRa.begin(433E6)) Serial.println("Error LoRa");
+  Wire.begin(SDA_PIN, SCL_PIN);
+  Wire.setTimeOut(1000);
+  ds18b20.begin();
+  ds18b20.setWaitForConversion(false);
 
-  // Inicializar hardware de sensores locales comunes
-  if (!bmp.begin(0x76)) Serial.println("Error BMP280");
-  if (!sht30.begin(0x44)) Serial.println("Error SHT30");
+  if (sht30.begin(0x44) || sht30.begin(0x45)) sht30_conectado = true;
+  if (bmp.begin(0x76) || bmp.begin(0x77)) bmp280_conectado = true;
 
-  if (!ES_MAESTRO_GATEWAY) {
-    // ==========================================
-    // EJECUCIÓN: NODO DE CAMPO (ESCLAVO)
-    // ==========================================
-    Serial.printf("\n--- MODO: NODO DE CAMPO [%s] ---\n", idNodo);
-    
-    // Mide y envía ráfaga LoRa
-    String payloadLoRa = generarJsonMedicion(idNodo, 0, 1);
-    Serial.println("Transmitiendo reporte hacia el Maestro...");
-    LoRa.beginPacket();
-    LoRa.print(payloadLoRa);
-    LoRa.endPacket();
+  colaFirebase = xQueueCreate(20, sizeof(LecturaNodo));
 
-    // Esperar ventana de SYNC
-    Serial.println("Esperando SYNC_OK...");
-    unsigned long startEscucha = millis();
-    bool sincronizado = false;
+  // 1. Inicializar LoRa
+  SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI);
+  LoRa.setPins(LORA_CS, LORA_RST, LORA_DIO0);
 
-    while (millis() - startEscucha < 3000) { 
-      int packetSize = LoRa.parsePacket();
-      if (packetSize) {
-        String msg = "";
-        while (LoRa.available()) msg += (char)LoRa.read();
-        if (msg == "SYNC_OK") {
-          sincronizado = true;
-          break;
-        }
-      }
-    }
-
-    WiFi.disconnect(true);
-    WiFi.mode(WIFI_OFF);
-    LoRa.sleep();
-
-    if (sincronizado) {
-      Serial.println("Sincronizado. Deep Sleep 10 min...");
-      esp_sleep_enable_timer_wakeup(TIEMPO_DORMIR_ESCLAVO_US);
-    } else {
-      Serial.println("Fallo SYNC. Reintento en 30 seg...");
-      esp_sleep_enable_timer_wakeup(30 * 1000000ULL);
-    }
-    esp_deep_sleep_start();
-
+  if (LoRa.begin(BAND)) {
+    LoRa.setSyncWord(0xF3);
+    LoRa.enableCrc();
+    lora_conectado = true;
+    Serial.println("✅ Receptor LoRa listo (433 MHz | Sync 0xF3 | CRC Activo)");
   } else {
-    // ==========================================
-    // EJECUCIÓN: NODO MAESTRO GATEWAY (CASA)
-    // ==========================================
-    Serial.println("\n--- MODO: MAESTRO GATEWAY ACTIVADO (SIEMPRE DESPIERTO) ---");
-    conectarWiFi();
-    
-    // Realiza una medición local inmediata de sus propios sensores al arrancar
-    String localJson = generarJsonMedicion("nodo_maestro_base", 1, 0);
-    enviarAlServidorWeb(localJson);
-    ultimoTiempoMedicionMaestro = millis();
+    Serial.println("❌ ERROR: No se detectó módulo LoRa en el Nodo Central");
   }
+
+  // 2. Conexión Wi-Fi
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("Conectando Wi-Fi");
+  int reintentos = 0;
+  while (WiFi.status() != WL_CONNECTED && reintentos < 20) {
+    delay(500);
+    Serial.print(".");
+    reintentos++;
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n✅ Wi-Fi Conectado!");
+  } else {
+    Serial.println("\n⚠️ No se pudo conectar a Wi-Fi ahora. Reintentando en segundo plano.");
+  }
+
+  // 3. Configurar Firebase
+  config.host = FIREBASE_HOST;
+  config.signer.tokens.legacy_token = FIREBASE_AUTH;
+  Firebase.begin(&config, &auth);
+  Firebase.reconnectWiFi(true);
+
+  xTaskCreatePinnedToCore(tareaFirebase, "TaskFirebase", 10000, NULL, 1, NULL, 0);
+  Serial.println("--- INICIO COMPLETADO ---\n");
 }
 
 void loop() {
-  // El loop solo corre de forma permanente para el MAESTRO GATEWAY
-  if (!ES_MAESTRO_GATEWAY) return;
+  if (lora_conectado) {
+    int packetSize = LoRa.parsePacket();
+    if (packetSize) {
+      String payload = "";
+      while (LoRa.available()) {
+        payload += (char)LoRa.read();
+      }
+      Serial.print("📡 [LoRa Recibido] [RSSI: ");
+      Serial.print(LoRa.packetRssi());
+      Serial.println(" dBm]: " + payload);
 
-  // --- TAREA 1: Escuchar y puentear datos de los nodos remotos ---
-  int packetSize = LoRa.parsePacket();
-  if (packetSize) {
-    Serial.println("📡 Reporte remoto detectado por LoRa...");
-    String cadenaJsonRemoto = "";
-    while (LoRa.available()) cadenaJsonRemoto += (char)LoRa.read();
-
-    if (cadenaJsonRemoto.startsWith("{") && cadenaJsonRemoto.endsWith("}")) {
-      // Responder ACK inmediato al esclavo para que se duerma rápido
-      delay(50); 
-      LoRa.beginPacket();
-      LoRa.print("SYNC_OK");
-      LoRa.endPacket();
-      Serial.println("ACK enviado al nodo remoto.");
-
-      // Subir el JSON del esclavo a la API
-      enviarAlServidorWeb(cadenaJsonRemoto);
+      encolarTrama(payload);
     }
   }
 
-  // --- TAREA 2: Medir sus propios sensores locales cada 10 minutos ---
-  unsigned long tiempoActual = millis();
-  if (tiempoActual - ultimoTiempoMedicionMaestro >= INTERVALO_MEDICION_MAESTRO) {
-    ultimoTiempoMedicionMaestro = tiempoActual;
-    Serial.println("\n[Maestro] Tomando lecturas de sensores locales propios...");
-    
-    String jsonPropio = generarJsonMedicion("nodo_maestro_base", 1, 0);
-    enviarAlServidorWeb(jsonPropio);
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;
+    leerYEncolarSensoresLocales();
   }
-}
 
-// --- SUBIDA HTTP DEL MAESTRO ---
-void conectarWiFi() {
-  if (WiFi.status() == WL_CONNECTED) return;
-  WiFi.config(local_IP, gateway, subnet);
-  WiFi.begin(ssid, password);
-  int intentos = 0;
-  while (WiFi.status() != WL_CONNECTED && intentos < 15) { delay(500); intentos++; }
-}
-
-void enviarAlServidorWeb(String jsonString) {
-  conectarWiFi();
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    http.begin(serverName);
-    http.addHeader("Content-Type", "application/json");
-    int responseCode = http.POST(jsonString);
-    Serial.printf("API HTTP Response Status: %d\n", responseCode);
-    http.end();
-  }
+  delay(10);
 }
