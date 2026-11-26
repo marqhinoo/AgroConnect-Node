@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_dark_deep">#080808</color>
+    <color name="bg_card_dark">#1A1A1A</color>
+    <color name="green_neon">#2ECC71</color>
+    <color name="border_subtle">#222222</color>
+    <color name="text_pure_white">#FFFFFF</color>
+    <color name="text_muted_gray">#A0A0A0</color>
+
+    <color name="alert_amber">#F1C40F</color>
+    <color name="temp_cyan">#00E5FF</color>
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

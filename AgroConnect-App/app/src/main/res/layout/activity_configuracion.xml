@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark_deep"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CONFIGURACIÓN"
+                android:textColor="@color/green_neon"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="PARÁMETROS Y UMBRALES AGRONÓMICOS"
+                android:textColor="@color/text_muted_gray"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- UMBRALES ATMOSFÉRICOS -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="TEMPERATURA Y CLIMA (AIRE)"
+            android:textColor="@color/text_muted_gray"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="@color/bg_card_dark"
+            app:strokeColor="@color/border_subtle"
+            app:strokeWidth="1dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MÁX. TEMP. AIRE (°C) [GOLPE DE CALOR]"
+                    android:textColor="@color/text_muted_gray"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/etTempMax"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@null"
+                    android:hint="Ej: 35.0"
+                    android:inputType="numberDecimal"
+                    android:textColor="@color/text_pure_white"
+                    android:textColorHint="@color/text_muted_gray"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/bg_card_dark"
+            app:strokeColor="@color/border_subtle"
+            app:strokeWidth="1dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MÍN. TEMP. AIRE (°C) [HELADA]"
+                    android:textColor="@color/text_muted_gray"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/etTempMin"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@null"
+                    android:hint="Ej: 2.0"
+                    android:inputType="numberDecimal"
+                    android:textColor="@color/text_pure_white"
+                    android:textColorHint="@color/text_muted_gray"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- UMBRALES DE ESTRÉS Y ENFERMEDADES (VPD) -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="DÉFICIT DE PRESIÓN DE VAPOR (VPD)"
+            android:textColor="@color/text_muted_gray"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="@color/bg_card_dark"
+            app:strokeColor="@color/border_subtle"
+            app:strokeWidth="1dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MÁX. VPD (kPa) [CIERRE ESTOMÁTICO]"
+                    android:textColor="@color/text_muted_gray"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/etVpdMax"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@null"
+                    android:hint="Ej: 1.5"
+                    android:inputType="numberDecimal"
+                    android:textColor="@color/text_pure_white"
+                    android:textColorHint="@color/text_muted_gray"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/bg_card_dark"
+            app:strokeColor="@color/border_subtle"
+            app:strokeWidth="1dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MÍN. VPD (kPa) [RIESGO FÚNGICO]"
+                    android:textColor="@color/text_muted_gray"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/etVpdMin"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@null"
+                    android:hint="Ej: 0.4"
+                    android:inputType="numberDecimal"
+                    android:textColor="@color/text_pure_white"
+                    android:textColorHint="@color/text_muted_gray"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- UMBRALES DE SUELO Y RAÍZ -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="PERFIL DE SUELO Y METABOLISMO RADICULAR"
+            android:textColor="@color/text_muted_gray"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="@color/bg_card_dark"
+            app:strokeColor="@color/border_subtle"
+            app:strokeWidth="1dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MÍN. HUMEDAD 15CM (%) [MARCHITEZ]"
+                    android:textColor="@color/text_muted_gray"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/etHumSueloMin"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@null"
+                    android:hint="Ej: 20.0"
+                    android:inputType="numberDecimal"
+                    android:textColor="@color/text_pure_white"
+                    android:textColorHint="@color/text_muted_gray"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="@color/bg_card_dark"
+            app:strokeColor="@color/border_subtle"
+            app:strokeWidth="1dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MÍN. TEMP. RAÍZ (°C) [BLOQUEO FRÍO]"
+                    android:textColor="@color/text_muted_gray"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/etTempRadicularMin"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@null"
+                    android:hint="Ej: 12.0"
+                    android:inputType="numberDecimal"
+                    android:textColor="@color/text_pure_white"
+                    android:textColorHint="@color/text_muted_gray"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            app:cardBackgroundColor="@color/bg_card_dark"
+            app:strokeColor="@color/border_subtle"
+            app:strokeWidth="1dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MÁX. TEMP. RAÍZ (°C) [ANOXIA]"
+                    android:textColor="@color/text_muted_gray"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/etTempRadicularMax"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@null"
+                    android:hint="Ej: 28.0"
+                    android:inputType="numberDecimal"
+                    android:textColor="@color/text_pure_white"
+                    android:textColorHint="@color/text_muted_gray"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- BOTÓN GUARDAR -->
+        <Button
+            android:id="@+id/btnGuardarConfig"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:backgroundTint="#2E7D32"
+            android:padding="14dp"
+            android:text="GUARDAR PARÁMETROS"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- BOTÓN CERRAR SESIÓN -->
+        <Button
+            android:id="@+id/btnCerrarSesion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:backgroundTint="#B71C1C"
+            android:padding="14dp"
+            android:text="CERRAR SESIÓN"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+</ScrollView>
